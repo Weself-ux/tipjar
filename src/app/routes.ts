@@ -1,44 +1,25 @@
-import {
-  type RouteConfigEntry,
-  index,
-  route,
-} from '@react-router/dev/routes';
+import { route, index } from '@react-router/dev/routes';
 
-const pageModules = import.meta.glob('./**/page.jsx');
-const routeModules = import.meta.glob('./**/route.js');
-
-function convertPath(filePath: string, isPage: boolean): string {
-  const suffix = isPage ? '/page.jsx' : '/route.js';
-  let routePath = filePath
-    .replace('./', '')
-    .replace(suffix, '')
-    .replace('page.jsx', '');
-  routePath = routePath.replace(/\[\.\.\.([^\]]+)\]/g, '*');
-  routePath = routePath.replace(/\[([^\]]+)\]/g, ':$1');
-  return routePath;
-}
-
-function generateRoutes(): RouteConfigEntry[] {
-  const routes: RouteConfigEntry[] = [];
-
-  for (const filePath of Object.keys(pageModules)) {
-    const routePath = convertPath(filePath, true);
-    if (routePath === '' || routePath === '/') {
-      routes.push(index(filePath));
-    } else {
-      routes.push(route(routePath, filePath));
-    }
-  }
-
-  for (const filePath of Object.keys(routeModules)) {
-    const routePath = convertPath(filePath, false);
-    if (routePath) {
-      routes.push(route(routePath, filePath));
-    }
-  }
-
-  return routes;
-}
-
-const notFound = route('*?', './__create/not-found.tsx');
-export default [...generateRoutes(), notFound];
+export default [
+  index('./page.jsx'),
+  route('dashboard', './dashboard/page.jsx'),
+  route('login', './login/page.jsx'),
+  route('signup', './signup/page.jsx'),
+  route('forgot-password', './forgot-password/page.jsx'),
+  route('howitworks', './howitworks/page.jsx'),
+  route('tip/:username', './tip/[username]/page.jsx'),
+  route('api/auth/signup', './api/auth/signup/route.js'),
+  route('api/auth/login', './api/auth/login/route.js'),
+  route('api/auth/me', './api/auth/me/route.js'),
+  route('api/auth/reset-password', './api/auth/reset-password/route.js'),
+  route('api/email/send', './api/email/send/route.js'),
+  route('api/tips/history', './api/tips/history/route.js'),
+  route('api/tips/analytics', './api/tips/analytics/route.js'),
+  route('api/tips/record', './api/tips/record/route.js'),
+  route('api/tips/sponsored', './api/tips/sponsored/route.js'),
+  route('api/user/check-username', './api/user/check-username/route.js'),
+  route('api/user/:username', './api/user/[username]/route.js'),
+  route('api/wallet/balance', './api/wallet/balance/route.js'),
+  route('api/wallet/transactions', './api/wallet/transactions/route.js'),
+  route('*', './__create/not-found.tsx'),
+];
