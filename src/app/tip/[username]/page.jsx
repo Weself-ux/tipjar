@@ -1,0 +1,501 @@
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  ExternalLink,
+  Loader2,
+  X,
+  ArrowRight,
+  Wallet,
+  CreditCard,
+  Check,
+  Zap,
+  Shield,
+} from "lucide-react";
+import {
+  connectMetaMask,
+  sendUsdc,
+  formatAddress,
+  ARC_EXPLORER,
+} from "../../../utils/arc-config";
+
+const AMOUNTS = ["1", "5", "10", "25"];
+
+export default function TipPage({ params }) {
+  const { username } = params;
+  const [mode, setMode] = useState("wallet"); // 'wallet' | 'sponsored'
+  const [wallet, setWallet] = useState(null);
+  const [amount, setAmount] = useState("5");
+  const [customAmount, setCustomAmount] = useState("");
+  const [message, setMessage] = useState("");
+  const [tipperEmail, setTipperEmail] = useState("");
+  const [status, setStatus] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [txHash, setTxHash] = useState("");
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successMode, setSuccessMode] = useState("");
+
+  const {
+    data: creator,
+    isLoading: creatorLoading,
+    error: creatorError,
+  } = useQuery({
+    queryKey: ["creator", username],
+    queryFn: async () => {
+      const res = await fetch(`/api/user/${username}`);
+      if (!res.ok) {
+        if (res.status === 404) throw new Error("not_found");
+        throw new Error("Failed to load creator");
+      }
+      return res.json();
+    },
+  });
+
+  const finalAmount = customAmount || amount;
+
+  async function handleConnect() {
+    try {
+      setStatus("");
+      const address = await connectMetaMask();
+      setWallet(address);
+    } catch (err) {
+      setStatus(err.message || "Failed to connect wallet.");
+    }
+  }
+
+  async function handleWalletTip() {
+    if (!wallet) {
+      setStatus("Connect your wallet first.");
+      return;
+    }
+    if (!finalAmount || isNaN(finalAmount) || Number(finalAmount) <= 0) {
+      setStatus("Enter a valid amount.");
+      return;
+    }
+    try {
+      setLoading(true);
+      setStatus("Confirm in MetaMask...");
+      const hash = await sendUsdc(creator.walletAddress, finalAmount);
+      setTxHash(hash);
+      try {
+        await fetch("/api/tips/record", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            creatorUsername: username,
+            creatorAddress: creator.walletAddress,
+            tipperAddress: wallet,
+            amount: finalAmount,
+            amountUsdc: parseFloat(finalAmount),
+            message: message || null,
+            txHash: hash,
+          }),
+        });
+      } catch {}
+      setSuccessMode("wallet");
+      setShowSuccess(true);
+      setAmount("5");
+      setCustomAmount("");
+      setMessage("");
+      setStatus("");
+    } catch (err) {
+      setStatus("Error: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSponsoredTip() {
+    if (!finalAmount || isNaN(finalAmount) || Number(finalAmount) <= 0) {
+      setStatus("Enter a valid amount.");
+      return;
+    }
+    if (Number(finalAmount) > 100) {
+      setStatus("Sponsored tips are limited to 100 USDC.");
+      return;
+    }
+    try {
+      setLoading(true);
+      setStatus("Processing your tip on Arc...");
+      const res = await fetch("/api/tips/sponsored", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          creatorUsername: username,
+          amountUsdc: parseFloat(finalAmount),
+          message: message || null,
+          tipperEmail: tipperEmail || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Tip failed.");
+      setTxHash(data.txId || "");
+      setSuccessMode("sponsored");
+      setShowSuccess(true);
+      setAmount("5");
+      setCustomAmount("");
+      setMessage("");
+      setTipperEmail("");
+      setStatus("");
+    } catch (err) {
+      setStatus("Error: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (creatorError?.message === "not_found") {
+    return (
+      <div className="min-h-screen bg-[#F9FAFB] font-inter flex items-center justify-center px-4">
+        <div className="bg-white rounded-2xl border border-[#E5E7EB] p-10 max-w-[400px] w-full text-center shadow-sm">
+          <div className="w-14 h-14 rounded-full bg-[#FEF2F2] flex items-center justify-center mx-auto mb-4">
+            <X size={24} className="text-red-400" />
+          </div>
+          <h2 className="text-lg font-semibold text-[#111827] mb-2">
+            Page not found
+          </h2>
+          <p className="text-sm text-[#6B7280] mb-6">
+            This creator page doesn't exist yet. Want to create your own?
+          </p>
+          <a
+            href="/signup"
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-[#7c3aed] rounded-xl hover:bg-[#6d28d9] transition-colors"
+          >
+            Create Your Tip Jar <ArrowRight size={14} />
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  if (creatorLoading || !creator) {
+    return (
+      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
+        <Loader2
+          size={24}
+          className="text-[#7c3aed]"
+          style={{ animation: "spin 1s linear infinite" }}
+        />
+        <style
+          jsx
+          global
+        >{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  const initial = creator.username ? creator.username[0].toUpperCase() : "?";
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#F5F3FF] via-white to-[#EFF6FF] font-inter flex flex-col items-center justify-center px-4 py-12">
+      {/* Tip Card */}
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm max-w-[460px] w-full overflow-hidden">
+        {/* Header strip */}
+        <div className="bg-gradient-to-r from-[#7c3aed] to-[#3b82f6] px-8 py-6 text-center">
+          <div className="w-16 h-16 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center text-2xl font-bold text-white mx-auto mb-3 backdrop-blur-sm">
+            {initial}
+          </div>
+          <h1 className="text-white font-semibold text-xl">
+            @{creator.username}
+          </h1>
+          <p className="text-white/70 text-sm mt-0.5">{creator.displayName}</p>
+        </div>
+
+        {/* Mode tabs */}
+        <div className="flex border-b border-[#E5E7EB]">
+          <button
+            onClick={() => {
+              setMode("wallet");
+              setStatus("");
+            }}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium border-b-2 -mb-[1px] transition-colors ${mode === "wallet" ? "text-[#7c3aed] border-[#7c3aed]" : "text-[#6B7280] border-transparent hover:text-[#111827]"}`}
+          >
+            <Wallet size={15} /> MetaMask
+          </button>
+          <button
+            onClick={() => {
+              setMode("sponsored");
+              setStatus("");
+              setWallet(null);
+            }}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium border-b-2 -mb-[1px] transition-colors relative ${mode === "sponsored" ? "text-[#7c3aed] border-[#7c3aed]" : "text-[#6B7280] border-transparent hover:text-[#111827]"}`}
+          >
+            <Zap size={15} /> No Wallet Needed
+            <span className="absolute top-2 right-3 bg-[#7c3aed] text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full">
+              NEW
+            </span>
+          </button>
+        </div>
+
+        <div className="p-6">
+          {/* Sponsored tip info banner */}
+          {mode === "sponsored" && (
+            <div className="flex items-start gap-3 bg-[#F5F3FF] border border-[#DDD6FE] rounded-xl p-3 mb-5">
+              <Zap size={16} className="text-[#7c3aed] flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-[#6B7280] leading-relaxed">
+                <span className="font-semibold text-[#7c3aed]">
+                  No crypto wallet needed.
+                </span>{" "}
+                The tip is sent directly to the creator in USDC on Arc Testnet
+                via Circle. Powered by Circle Programmable Wallets.
+              </p>
+            </div>
+          )}
+
+          {/* Wallet connect (wallet mode only) */}
+          {mode === "wallet" && (
+            <div className="mb-5">
+              {!wallet ? (
+                <button
+                  onClick={handleConnect}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold text-white bg-[#111827] rounded-xl hover:bg-[#1F2937] transition-colors"
+                >
+                  <img
+                    src="https://raw.githubusercontent.com/MetaMask/brand-resources/master/SVG/metamask-fox.svg"
+                    alt=""
+                    className="w-4 h-4"
+                    onError={(e) => {
+                      e.target.style.display = "none";
+                    }}
+                  />
+                  Connect MetaMask
+                </button>
+              ) : (
+                <div className="flex items-center justify-between bg-[#F0FDF4] border border-[#BBF7D0] rounded-xl px-4 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
+                    <span className="text-sm font-medium text-green-800">
+                      {formatAddress(wallet)}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setWallet(null)}
+                    className="text-xs text-[#6B7280] hover:text-red-500 transition-colors"
+                  >
+                    Disconnect
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Email (sponsored mode) */}
+          {mode === "sponsored" && (
+            <div className="mb-4">
+              <label className="block text-xs font-medium text-[#6B7280] mb-1.5 uppercase tracking-wider">
+                Your Email (optional, for receipt)
+              </label>
+              <input
+                type="email"
+                value={tipperEmail}
+                onChange={(e) => {
+                  setTipperEmail(e.target.value);
+                  setStatus("");
+                }}
+                placeholder="you@example.com"
+                className="w-full px-3 py-2.5 text-sm text-[#111827] bg-white border border-[#E5E7EB] rounded-xl outline-none focus:ring-2 focus:ring-[#7c3aed] focus:ring-offset-2 transition-all"
+              />
+            </div>
+          )}
+
+          {/* Amount selector */}
+          <div className="mb-4">
+            <label className="block text-xs font-medium text-[#6B7280] mb-2 uppercase tracking-wider">
+              Amount (USDC)
+            </label>
+            <div className="grid grid-cols-4 gap-2 mb-2">
+              {AMOUNTS.map((a) => (
+                <button
+                  key={a}
+                  onClick={() => {
+                    setAmount(a);
+                    setCustomAmount("");
+                    setStatus("");
+                  }}
+                  className={`py-2.5 text-sm font-semibold rounded-xl border-2 transition-all ${amount === a && !customAmount ? "border-[#7c3aed] bg-[#F5F3FF] text-[#7c3aed]" : "border-[#E5E7EB] text-[#374151] hover:border-[#C4B5FD]"}`}
+                >
+                  ${a}
+                </button>
+              ))}
+            </div>
+            <input
+              type="number"
+              value={customAmount}
+              onChange={(e) => {
+                setCustomAmount(e.target.value);
+                setAmount("");
+                setStatus("");
+              }}
+              placeholder="Custom amount"
+              min="0"
+              step="0.01"
+              className="w-full px-3 py-2.5 text-sm text-[#111827] bg-white border border-[#E5E7EB] rounded-xl outline-none focus:ring-2 focus:ring-[#7c3aed] focus:ring-offset-2 transition-all"
+            />
+          </div>
+
+          {/* Message */}
+          <div className="mb-5">
+            <label className="block text-xs font-medium text-[#6B7280] mb-1.5 uppercase tracking-wider">
+              Message (optional)
+            </label>
+            <input
+              type="text"
+              value={message}
+              onChange={(e) => {
+                setMessage(e.target.value);
+                setStatus("");
+              }}
+              placeholder="Keep up the great work! 🔥"
+              maxLength={200}
+              className="w-full px-3 py-2.5 text-sm text-[#111827] bg-white border border-[#E5E7EB] rounded-xl outline-none focus:ring-2 focus:ring-[#7c3aed] focus:ring-offset-2 transition-all"
+            />
+          </div>
+
+          {/* Status */}
+          {status && (
+            <div className="mb-4 px-4 py-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl">
+              {status}
+            </div>
+          )}
+
+          {/* Send button */}
+          {mode === "wallet" ? (
+            <button
+              onClick={handleWalletTip}
+              disabled={loading || !wallet}
+              className="w-full py-3 text-sm font-bold text-white bg-gradient-to-r from-[#7c3aed] to-[#3b82f6] rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2
+                    size={16}
+                    style={{ animation: "spin 1s linear infinite" }}
+                  />{" "}
+                  {status || "Sending..."}
+                </span>
+              ) : (
+                `Send ${finalAmount ? `$${finalAmount}` : ""} USDC to @${creator.username}`
+              )}
+            </button>
+          ) : (
+            <button
+              onClick={handleSponsoredTip}
+              disabled={loading}
+              className="w-full py-3 text-sm font-bold text-white bg-gradient-to-r from-[#7c3aed] to-[#3b82f6] rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2
+                    size={16}
+                    style={{ animation: "spin 1s linear infinite" }}
+                  />{" "}
+                  {status || "Processing..."}
+                </span>
+              ) : (
+                `Send ${finalAmount ? `$${finalAmount}` : ""} USDC · No Wallet Needed`
+              )}
+            </button>
+          )}
+
+          {/* Trust signals */}
+          <div className="flex items-center justify-center gap-4 mt-4">
+            <div className="flex items-center gap-1 text-xs text-[#9CA3AF]">
+              <Shield size={11} /> Secured by Arc & Circle
+            </div>
+            <div className="flex items-center gap-1 text-xs text-[#9CA3AF]">
+              <Zap size={11} /> Settles in &lt;1 second
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="mt-6 text-center">
+        <p className="text-xs text-[#9CA3AF]">
+          Want your own Tip Jar?{" "}
+          <a
+            href="/signup"
+            className="text-[#7c3aed] font-medium hover:text-[#6d28d9]"
+          >
+            Create one free →
+          </a>
+        </p>
+      </div>
+
+      {/* Success Modal */}
+      {showSuccess && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4"
+          style={{
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+          }}
+        >
+          <div className="bg-white rounded-2xl border border-[#E5E7EB] p-8 max-w-[420px] w-full text-center shadow-xl relative">
+            <button
+              onClick={() => setShowSuccess(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full border border-[#E5E7EB] flex items-center justify-center text-[#6B7280] hover:border-[#D1D5DB] hover:text-[#111827] transition-colors"
+            >
+              <X size={14} />
+            </button>
+
+            <div className="w-16 h-16 rounded-full bg-[#F5F3FF] flex items-center justify-center mx-auto mb-4">
+              <Check size={28} className="text-[#7c3aed]" />
+            </div>
+            <h2 className="text-xl font-bold text-[#111827] mb-1">
+              Tip Sent! 🎉
+            </h2>
+            <p className="text-sm text-[#6B7280] mb-6">
+              {successMode === "sponsored"
+                ? `$${finalAmount || amount} USDC was sent to @${creator.username} via Circle on Arc Testnet. No wallet needed — it just worked.`
+                : `$${finalAmount || amount} USDC arrived in @${creator.username}'s wallet on Arc Testnet in under a second.`}
+            </p>
+
+            {txHash && (
+              <div className="bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl p-4 mb-5 text-left">
+                <p className="text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1.5">
+                  {successMode === "sponsored"
+                    ? "Circle Transfer ID"
+                    : "Transaction Hash"}
+                </p>
+                <code className="text-xs text-[#7c3aed] break-all block">
+                  {txHash.length > 20 ? txHash.slice(0, 20) + "..." : txHash}
+                </code>
+                {successMode === "wallet" && (
+                  <a
+                    href={`${ARC_EXPLORER}/tx/${txHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-[#7c3aed] font-medium mt-2 hover:text-[#6d28d9]"
+                  >
+                    View on Arc Explorer <ExternalLink size={11} />
+                  </a>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <a
+                href="/signup"
+                className="block w-full py-2.5 text-sm font-bold text-white bg-gradient-to-r from-[#7c3aed] to-[#3b82f6] rounded-xl hover:opacity-90 transition-opacity text-center"
+              >
+                Create Your Own Tip Jar
+              </a>
+              <button
+                onClick={() => {
+                  setShowSuccess(false);
+                }}
+                className="w-full py-2.5 text-sm font-medium text-[#6B7280] border border-[#E5E7EB] rounded-xl hover:border-[#D1D5DB] hover:text-[#111827] transition-colors"
+              >
+                Send Another Tip
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style jsx global>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
+    </div>
+  );
+}

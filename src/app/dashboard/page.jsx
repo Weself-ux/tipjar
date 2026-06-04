@@ -1,0 +1,518 @@
+import { useState, useEffect, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Copy,
+  Check,
+  ExternalLink,
+  ArrowUpRight,
+  ArrowDownLeft,
+  LogOut,
+  Send,
+  BarChart3,
+  Wallet,
+  LayoutDashboard,
+  Loader2,
+} from "lucide-react";
+import useSession from "../../utils/useSession";
+import {
+  connectMetaMask,
+  sendUsdc,
+  formatAddress,
+  ARC_EXPLORER,
+} from "../../utils/arc-config";
+
+function SendUSDCForm({ walletAddress }) {
+  const [toAddress, setToAddress] = useState("");
+  const [sendAmount, setSendAmount] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sendStatus, setSendStatus] = useState("");
+  const [txHash, setTxHash] = useState("");
+
+  async function handleSend() {
+    if (!toAddress || !sendAmount) {
+      setSendStatus("Please fill in all fields.");
+      return;
+    }
+    if (!/^0x[a-fA-F0-9]{40}$/.test(toAddress)) {
+      setSendStatus("Invalid wallet address.");
+      return;
+    }
+    if (isNaN(sendAmount) || Number(sendAmount) <= 0) {
+      setSendStatus("Enter a valid amount.");
+      return;
+    }
+    try {
+      setSending(true);
+      setSendStatus("Connecting to MetaMask...");
+      await connectMetaMask();
+      setSendStatus("Sending USDC on Arc...");
+      const hash = await sendUsdc(toAddress, sendAmount);
+      setTxHash(hash);
+      setSendStatus("Sent successfully!");
+      setToAddress("");
+      setSendAmount("");
+    } catch (err) {
+      setSendStatus("Error: " + err.message);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  const isSuccess = sendStatus === "Sent successfully!";
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <label className="block text-xs font-medium text-[#6B7280] mb-1.5 uppercase tracking-wider">
+          Recipient Address
+        </label>
+        <input
+          type="text"
+          value={toAddress}
+          onChange={(e) => {
+            setToAddress(e.target.value);
+            setSendStatus("");
+          }}
+          placeholder="0x..."
+          className="w-full px-3 py-2.5 text-sm text-[#111827] bg-white border border-[#E5E7EB] rounded-lg outline-none focus:ring-2 focus:ring-[#7c3aed] focus:ring-offset-2 transition-all"
+        />
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-[#6B7280] mb-1.5 uppercase tracking-wider">
+          Amount (USDC)
+        </label>
+        <input
+          type="text"
+          value={sendAmount}
+          onChange={(e) => {
+            setSendAmount(e.target.value);
+            setSendStatus("");
+          }}
+          placeholder="0.00"
+          className="w-full px-3 py-2.5 text-sm text-[#111827] bg-white border border-[#E5E7EB] rounded-lg outline-none focus:ring-2 focus:ring-[#7c3aed] focus:ring-offset-2 transition-all"
+        />
+      </div>
+      {sendStatus && (
+        <div
+          className={`px-3 py-2.5 text-sm rounded-lg border ${isSuccess ? "text-green-700 bg-green-50 border-green-200" : "text-red-700 bg-red-50 border-red-200"}`}
+        >
+          {sendStatus}
+        </div>
+      )}
+      {txHash && (
+        <a
+          href={`${ARC_EXPLORER}/tx/${txHash}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-sm text-[#7c3aed] hover:text-[#6d28d9]"
+        >
+          View on Arc Explorer <ExternalLink size={12} />
+        </a>
+      )}
+      <button
+        onClick={handleSend}
+        disabled={sending}
+        className="w-full py-2.5 text-sm font-semibold text-white bg-[#7c3aed] rounded-lg hover:bg-[#6d28d9] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+      >
+        {sending ? (
+          <>
+            <Loader2 size={16} className="animate-spin" /> Sending...
+          </>
+        ) : (
+          <>
+            <Send size={16} /> Send USDC
+          </>
+        )}
+      </button>
+    </div>
+  );
+}
+
+export default function Dashboard() {
+  const { user, loading: sessionLoading, logout } = useSession();
+  const [activeTab, setActiveTab] = useState("overview");
+  const [copied, setCopied] = useState(false);
+  const [copiedAddress, setCopiedAddress] = useState(false);
+
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!sessionLoading && !user) {
+      window.location.href = "/login";
+    }
+  }, [user, sessionLoading]);
+
+  // Fetch balance
+  const { data: balanceData, isLoading: balanceLoading } = useQuery({
+    queryKey: ["balance", user?.walletAddress],
+    queryFn: async () => {
+      if (!user?.walletAddress) return null;
+      const res = await fetch(
+        `/api/wallet/balance?address=${user.walletAddress}`,
+      );
+      if (!res.ok) throw new Error("Failed to fetch balance");
+      return res.json();
+    },
+    enabled: !!user?.walletAddress,
+    refetchInterval: 30000,
+  });
+
+  // Fetch transactions
+  const { data: txData, isLoading: txLoading } = useQuery({
+    queryKey: ["transactions", user?.walletAddress],
+    queryFn: async () => {
+      if (!user?.walletAddress) return null;
+      const res = await fetch(
+        `/api/wallet/transactions?address=${user.walletAddress}`,
+      );
+      if (!res.ok) throw new Error("Failed to fetch transactions");
+      return res.json();
+    },
+    enabled: !!user?.walletAddress,
+    refetchInterval: 30000,
+  });
+
+  // Fetch tip analytics
+  const { data: analyticsData } = useQuery({
+    queryKey: ["analytics", user?.username],
+    queryFn: async () => {
+      if (!user?.username) return null;
+      const res = await fetch(`/api/tips/analytics?username=${user.username}`);
+      if (!res.ok) throw new Error("Failed to fetch analytics");
+      return res.json();
+    },
+    enabled: !!user?.username,
+    refetchInterval: 60000,
+  });
+
+  function copyLink() {
+    const link = window.location.origin + "/tip/" + user.username;
+    navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  function copyAddress() {
+    navigator.clipboard.writeText(user.walletAddress);
+    setCopiedAddress(true);
+    setTimeout(() => setCopiedAddress(false), 2000);
+  }
+
+  function handleLogout() {
+    logout();
+    window.location.href = "/";
+  }
+
+  function formatDate(timestamp) {
+    const ts =
+      typeof timestamp === "string" ? timestamp : Number(timestamp) * 1000;
+    return new Date(ts).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+
+  if (sessionLoading || !user) {
+    return (
+      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
+        <Loader2 size={24} className="text-[#7c3aed] animate-spin" />
+      </div>
+    );
+  }
+
+  const transactions = txData?.transactions || [];
+  const incomingTxns = transactions.filter((tx) => tx.isIncoming);
+  const tipLink =
+    (typeof window !== "undefined" ? window.location.origin : "") +
+    "/tip/" +
+    user.username;
+
+  const tabs = [
+    { id: "overview", label: "Overview", icon: LayoutDashboard },
+    { id: "tips", label: "Tip History", icon: ArrowDownLeft },
+    { id: "wallet", label: "Wallet", icon: Wallet },
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#F9FAFB] font-inter">
+      {/* Nav */}
+      <nav className="sticky top-0 z-50 bg-white border-b border-[#E5E7EB]">
+        <div className="max-w-[1000px] mx-auto px-6 flex items-center justify-between h-14">
+          <a
+            href="/"
+            className="text-lg font-semibold text-[#111827] tracking-tight flex items-center gap-2"
+          >
+            <img
+              src="https://raw.createusercontent.com/18c04710-416f-413e-9610-a8ca69e91d6d/"
+              alt="Tip Jar"
+              className="w-6 h-6 rounded"
+            />
+            Tip Jar
+          </a>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-[#6B7280]">@{user.username}</span>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#6B7280] border border-[#E5E7EB] rounded-lg hover:border-red-300 hover:text-red-500 transition-colors"
+            >
+              <LogOut size={14} /> Log out
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <div className="max-w-[1000px] mx-auto px-6 py-8">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold text-[#111827] tracking-tight">
+            Welcome back, {user.fullName.split(" ")[0]}
+          </h1>
+          <p className="text-sm text-[#6B7280]">
+            Here is your Tip Jar overview
+          </p>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div className="bg-white rounded-xl border border-[#E5E7EB] p-5">
+            <p className="text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-2">
+              USDC Balance
+            </p>
+            {balanceLoading ? (
+              <p className="text-sm text-[#6B7280]">Fetching...</p>
+            ) : (
+              <p className="text-2xl font-semibold text-[#111827]">
+                {balanceData?.balanceUsdc || "0.0000"}{" "}
+                <span className="text-sm font-normal text-[#6B7280]">USDC</span>
+              </p>
+            )}
+            <p className="text-xs text-[#6B7280] mt-1">Live on Arc Testnet</p>
+          </div>
+          <div className="bg-white rounded-xl border border-[#E5E7EB] p-5">
+            <p className="text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-2">
+              Tips Received
+            </p>
+            <p className="text-2xl font-semibold text-[#111827]">
+              {analyticsData?.tipCount || incomingTxns.length}{" "}
+              <span className="text-sm font-normal text-[#6B7280]">tips</span>
+            </p>
+            <p className="text-xs text-[#6B7280] mt-1">All time</p>
+          </div>
+          <div className="bg-white rounded-xl border border-[#E5E7EB] p-5">
+            <p className="text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-2">
+              Your Tip Link
+            </p>
+            <p className="text-sm text-[#7c3aed] break-all mb-2">
+              /tip/{user.username}
+            </p>
+            <button
+              onClick={copyLink}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#7c3aed] rounded-lg hover:bg-[#6d28d9] transition-colors"
+            >
+              {copied ? (
+                <>
+                  <Check size={12} /> Copied!
+                </>
+              ) : (
+                <>
+                  <Copy size={12} /> Copy Link
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-0 mb-6 border-b border-[#E5E7EB]">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-1.5 px-4 pb-3 text-sm font-medium border-b-2 -mb-[1px] transition-colors ${isActive ? "text-[#111827] border-[#7c3aed]" : "text-[#6B7280] border-transparent hover:text-[#111827]"}`}
+              >
+                <Icon size={16} />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === "overview" && (
+          <div className="space-y-4">
+            {/* Share link */}
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
+              <h3 className="text-base font-semibold text-[#111827] mb-1">
+                Share Your Tip Jar
+              </h3>
+              <p className="text-sm text-[#6B7280] mb-4">
+                Send this link to your audience so they can tip you in USDC
+              </p>
+              <div className="flex items-center gap-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-lg px-4 py-3">
+                <code className="flex-1 text-sm text-[#7c3aed] break-all">
+                  {tipLink}
+                </code>
+                <button
+                  onClick={copyLink}
+                  className="px-3 py-1.5 text-xs font-semibold text-white bg-[#7c3aed] rounded-lg hover:bg-[#6d28d9] flex-shrink-0"
+                >
+                  {copied ? "Copied!" : "Copy"}
+                </button>
+              </div>
+            </div>
+
+            {/* Recent Activity */}
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
+              <h3 className="text-base font-semibold text-[#111827] mb-1">
+                Recent Activity
+              </h3>
+              <p className="text-sm text-[#6B7280] mb-4">
+                Latest transactions on your wallet
+              </p>
+              {txLoading ? (
+                <p className="text-sm text-[#6B7280] py-4">
+                  Loading transactions...
+                </p>
+              ) : transactions.length === 0 ? (
+                <p className="text-sm text-[#6B7280] py-4">
+                  No transactions yet. Share your tip link to get started!
+                </p>
+              ) : (
+                <div className="space-y-0">
+                  {transactions.slice(0, 5).map((tx) => (
+                    <div
+                      key={tx.hash}
+                      className="flex items-center gap-4 py-3 border-b border-[#F3F4F6] last:border-0"
+                    >
+                      <div
+                        className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-semibold ${tx.isIncoming ? "bg-green-50 text-green-600 border border-green-200" : "bg-red-50 text-red-500 border border-red-200"}`}
+                      >
+                        {tx.isIncoming ? (
+                          <ArrowDownLeft size={16} />
+                        ) : (
+                          <ArrowUpRight size={16} />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-[#111827]">
+                          {tx.isIncoming ? "From " : "To "}
+                          {formatAddress(tx.isIncoming ? tx.from : tx.to)}
+                        </p>
+                        <p className="text-xs text-[#6B7280]">
+                          {formatDate(tx.timestamp)}
+                        </p>
+                      </div>
+                      <span
+                        className={`text-sm font-semibold ${tx.isIncoming ? "text-green-600" : "text-red-500"}`}
+                      >
+                        {tx.isIncoming ? "+" : "-"}
+                        {tx.valueUsdc} USDC
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "tips" && (
+          <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
+            <h3 className="text-base font-semibold text-[#111827] mb-1">
+              Tip History
+            </h3>
+            <p className="text-sm text-[#6B7280] mb-4">
+              All incoming tips to your wallet
+            </p>
+            {txLoading ? (
+              <p className="text-sm text-[#6B7280] py-4">Loading...</p>
+            ) : incomingTxns.length === 0 ? (
+              <p className="text-sm text-[#6B7280] py-4">
+                No tips received yet.
+              </p>
+            ) : (
+              <div className="space-y-0">
+                {incomingTxns.map((tx) => (
+                  <div
+                    key={tx.hash}
+                    className="flex items-center gap-4 py-3 border-b border-[#F3F4F6] last:border-0"
+                  >
+                    <div className="w-9 h-9 rounded-lg bg-green-50 text-green-600 border border-green-200 flex items-center justify-center">
+                      <ArrowDownLeft size={16} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-[#111827]">
+                        From {formatAddress(tx.from)}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs text-[#6B7280]">
+                          {formatDate(tx.timestamp)}
+                        </p>
+                        <a
+                          href={`${ARC_EXPLORER}/tx/${tx.hash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-[#7c3aed] hover:text-[#6d28d9] flex items-center gap-0.5"
+                        >
+                          Explorer <ExternalLink size={10} />
+                        </a>
+                      </div>
+                    </div>
+                    <span className="text-sm font-semibold text-green-600">
+                      +{tx.valueUsdc} USDC
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "wallet" && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
+              <h3 className="text-base font-semibold text-[#111827] mb-1">
+                Your Wallet
+              </h3>
+              <p className="text-sm text-[#6B7280] mb-4">
+                Your USDC tips are sent to this address on Arc Testnet
+              </p>
+              <div className="flex items-center gap-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-lg px-4 py-3 mb-4">
+                <code className="flex-1 text-sm text-[#111827] break-all">
+                  {user.walletAddress}
+                </code>
+                <button
+                  onClick={copyAddress}
+                  className="px-3 py-1.5 text-xs font-semibold text-white bg-[#7c3aed] rounded-lg hover:bg-[#6d28d9] flex-shrink-0"
+                >
+                  {copiedAddress ? "Copied!" : "Copy"}
+                </button>
+              </div>
+              <a
+                href={`${ARC_EXPLORER}/address/${user.walletAddress}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm text-[#7c3aed] border border-[#7c3aed] rounded-lg hover:bg-[#EFF6FF] transition-colors"
+              >
+                View on Arc Explorer <ExternalLink size={14} />
+              </a>
+            </div>
+
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
+              <h3 className="text-base font-semibold text-[#111827] mb-1">
+                Send USDC
+              </h3>
+              <p className="text-sm text-[#6B7280] mb-4">
+                Send USDC directly to any address on Arc Testnet
+              </p>
+              <SendUSDCForm walletAddress={user.walletAddress} />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
