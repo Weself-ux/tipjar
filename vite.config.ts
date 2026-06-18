@@ -19,7 +19,7 @@ export default defineConfig({
   optimizeDeps: {
     // Explicitly include fast-glob, since it gets dynamically imported and we
     // don't want that to cause a re-bundle.
-    include: ['fast-glob', 'lucide-react'],
+    include: ['fast-glob', 'lucide-react', 'react-idle-timer'],
     exclude: [
       '@hono/auth-js/react',
       '@hono/auth-js',
@@ -79,6 +79,9 @@ export default defineConfig({
   },
   build: {
     target: 'esnext',
+  },
+  ssr: {
+    noExternal: ['react-idle-timer'],
   },
   clearScreen: false,
   server: {
