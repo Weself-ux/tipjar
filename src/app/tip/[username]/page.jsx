@@ -167,6 +167,30 @@ export default function TipPage({ params }) {
     );
   }
 
+if (creatorError) {
+    return (
+      <div className="min-h-screen bg-[#F9FAFB] font-inter flex items-center justify-center px-4">
+        <div className="bg-white rounded-2xl border border-[#E5E7EB] p-10 max-w-[400px] w-full text-center shadow-sm">
+          <div className="w-14 h-14 rounded-full bg-[#FEF2F2] flex items-center justify-center mx-auto mb-4">
+            <X size={24} className="text-red-400" />
+          </div>
+          <h2 className="text-lg font-semibold text-[#111827] mb-2">
+            Couldn't load this page
+          </h2>
+          <p className="text-sm text-[#6B7280] mb-6">
+            Something went wrong loading this creator. Please try again.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-[#7c3aed] rounded-xl hover:bg-[#6d28d9] transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (creatorLoading || !creator) {
     return (
       <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">

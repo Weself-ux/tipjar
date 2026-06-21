@@ -12,6 +12,9 @@ import {
   Wallet,
   LayoutDashboard,
   Loader2,
+  Lock,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import useSession from "../../utils/useSession";
 import {
@@ -133,6 +136,13 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const [copied, setCopied] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState(false);
+  const [showKeyPrompt, setShowKeyPrompt] = useState(false);
+  const [keyPassword, setKeyPassword] = useState("");
+  const [keyError, setKeyError] = useState("");
+  const [keyChecking, setKeyChecking] = useState(false);
+  const [revealedKey, setRevealedKey] = useState(null);
+  const [copiedKey, setCopiedKey] = useState(false);
+  const [showKeyText, setShowKeyText] = useState(false);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -195,6 +205,53 @@ export default function Dashboard() {
     navigator.clipboard.writeText(user.walletAddress);
     setCopiedAddress(true);
     setTimeout(() => setCopiedAddress(false), 2000);
+  }
+
+  async function verifyPasswordAndRevealKey() {
+    if (!keyPassword) {
+      setKeyError("Please enter your password.");
+      return;
+    }
+    setKeyChecking(true);
+    setKeyError("");
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email, password: keyPassword }),
+      });
+      if (!res.ok) {
+        setKeyError("Incorrect password.");
+        return;
+      }
+      const stored = localStorage.getItem(
+        "tipjar_private_key_" + user.username,
+      );
+      if (!stored) {
+        setKeyError(
+          "No private key found on this device. This wallet may have been connected via MetaMask, or you're viewing this on a different device than the one used to sign up.",
+        );
+        return;
+      }
+      setRevealedKey(stored);
+      setShowKeyPrompt(false);
+      setKeyPassword("");
+    } catch {
+      setKeyError("Something went wrong. Please try again.");
+    } finally {
+      setKeyChecking(false);
+    }
+  }
+
+  function hidePrivateKey() {
+    setRevealedKey(null);
+    setShowKeyText(false);
+  }
+
+  function copyPrivateKey() {
+    navigator.clipboard.writeText(revealedKey);
+    setCopiedKey(true);
+    setTimeout(() => setCopiedKey(false), 2000);
   }
 
   function handleLogout() {
@@ -499,6 +556,104 @@ export default function Dashboard() {
               >
                 View on Arc Explorer <ExternalLink size={14} />
               </a>
+            </div>
+
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
+              <h3 className="text-base font-semibold text-[#111827] mb-1 flex items-center gap-2">
+                <Lock size={16} className="text-[#6B7280]" />
+                Private Key
+              </h3>
+              <p className="text-sm text-[#6B7280] mb-4">
+                Anyone with this key has full control of your wallet. Keep it secret.
+              </p>
+
+              {!revealedKey && (
+                <button
+                  onClick={() => {
+                    setShowKeyPrompt(true);
+                    setKeyError("");
+                    setKeyPassword("");
+                  }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-[#111827] border border-[#E5E7EB] rounded-lg hover:bg-[#F9FAFB] transition-colors"
+                >
+                  <Eye size={14} /> Reveal Private Key
+                </button>
+              )}
+
+              {showKeyPrompt && !revealedKey && (
+                <div className="mt-4 bg-[#F9FAFB] border border-[#E5E7EB] rounded-lg p-4">
+                  <p className="text-sm text-[#111827] font-medium mb-2">
+                    Confirm your account password
+                  </p>
+                  <input
+                    type="password"
+                    value={keyPassword}
+                    onChange={(e) => {
+                      setKeyPassword(e.target.value);
+                      setKeyError("");
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") verifyPasswordAndRevealKey();
+                    }}
+                    placeholder="Your account password"
+                    className="w-full px-3 py-2.5 text-sm text-[#111827] bg-white border border-[#E5E7EB] rounded-lg outline-none focus:ring-2 focus:ring-[#7c3aed] focus:ring-offset-2 transition-all mb-2"
+                  />
+                  {keyError && (
+                    <p className="text-sm text-red-600 mb-2">{keyError}</p>
+                  )}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={verifyPasswordAndRevealKey}
+                      disabled={keyChecking}
+                      className="px-4 py-2 text-sm font-semibold text-white bg-[#7c3aed] rounded-lg hover:bg-[#6d28d9] disabled:opacity-50"
+                    >
+                      {keyChecking ? "Checking..." : "Confirm"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowKeyPrompt(false);
+                        setKeyPassword("");
+                        setKeyError("");
+                      }}
+                      className="px-4 py-2 text-sm font-medium text-[#6B7280] hover:text-[#111827]"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {revealedKey && (
+                <div className="mt-2">
+                  <div className="flex items-center gap-3 bg-[#FEF2F2] border border-red-200 rounded-lg px-4 py-3 mb-3">
+                    <code className="flex-1 text-sm text-[#111827] break-all">
+                      {showKeyText
+                        ? revealedKey
+                        : "•".repeat(Math.min(revealedKey.length, 50))}
+                    </code>
+                    <button
+                      onClick={() => setShowKeyText(!showKeyText)}
+                      className="text-[#6B7280] hover:text-[#111827] flex-shrink-0"
+                    >
+                      {showKeyText ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={copyPrivateKey}
+                      className="px-3 py-1.5 text-xs font-semibold text-white bg-[#7c3aed] rounded-lg hover:bg-[#6d28d9]"
+                    >
+                      {copiedKey ? "Copied!" : "Copy Key"}
+                    </button>
+                    <button
+                      onClick={hidePrivateKey}
+                      className="px-3 py-1.5 text-xs font-medium text-[#6B7280] border border-[#E5E7EB] rounded-lg hover:bg-[#F9FAFB]"
+                    >
+                      Hide
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">

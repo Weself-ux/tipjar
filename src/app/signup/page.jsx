@@ -87,6 +87,7 @@ export default function Signup() {
   const [otp, setOtp] = useState("");
   const [sentOtp, setSentOtp] = useState("");
   const [sendingOtp, setSendingOtp] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState(null);
@@ -188,6 +189,8 @@ export default function Signup() {
         EMAILJS_PUBLIC_KEY,
       );
       setStep(2);
+      setResendSuccess(true);
+      setTimeout(() => setResendSuccess(false), 3000);
     } catch {
       setError("Failed to send verification code. Please try again.");
     } finally {
@@ -592,9 +595,10 @@ export default function Signup() {
               <div className="flex items-center justify-center gap-2 mt-4 text-sm text-[#6B7280]">
                 <button
                   onClick={sendOTP}
-                  className="text-[#7c3aed] font-medium hover:text-[#6d28d9]"
+                  disabled={sendingOtp}
+                  className="text-[#7c3aed] font-medium hover:text-[#6d28d9] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Resend code
+                  {sendingOtp ? "Sending..." : resendSuccess ? "Code sent ✓" : "Resend code"}
                 </button>
                 <span>·</span>
                 <button
