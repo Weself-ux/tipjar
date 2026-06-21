@@ -1,6 +1,6 @@
 import sql from "@/app/api/utils/sql";
 
-export async function action({ request, params }) {
+export async function loader({ request, params }) {
   try {
     const { username } = params;
 
