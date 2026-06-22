@@ -20,11 +20,12 @@ import useSession from "../../utils/useSession";
 import {
   connectMetaMask,
   sendUsdc,
+  sendUsdcFromPrivateKey,
   formatAddress,
   ARC_EXPLORER,
 } from "../../utils/arc-config";
 
-function SendUSDCForm({ walletAddress }) {
+function SendUSDCForm({ walletAddress, username }) {
   const [toAddress, setToAddress] = useState("");
   const [sendAmount, setSendAmount] = useState("");
   const [sending, setSending] = useState(false);
@@ -46,10 +47,24 @@ function SendUSDCForm({ walletAddress }) {
     }
     try {
       setSending(true);
-      setSendStatus("Connecting to MetaMask...");
-      await connectMetaMask();
-      setSendStatus("Sending USDC on Arc...");
-      const hash = await sendUsdc(toAddress, sendAmount);
+      const storedKey = localStorage.getItem("tipjar_private_key_" + username);
+      let hash;
+      if (storedKey) {
+        setSendStatus("Sending USDC on Arc...");
+        hash = await sendUsdcFromPrivateKey(storedKey, toAddress, sendAmount);
+      } else {
+        setSendStatus("Connecting to MetaMask...");
+        const connectedAddress = await connectMetaMask();
+        if (
+          connectedAddress.toLowerCase() !== walletAddress.toLowerCase()
+        ) {
+          throw new Error(
+            `Connected MetaMask account doesn't match your Tip Jar wallet (${formatAddress(walletAddress)}). Please switch accounts in MetaMask and try again.`,
+          );
+        }
+        setSendStatus("Sending USDC on Arc...");
+        hash = await sendUsdc(toAddress, sendAmount);
+      }
       setTxHash(hash);
       setSendStatus("Sent successfully!");
       setToAddress("");
@@ -192,6 +207,19 @@ export default function Dashboard() {
     },
     enabled: !!user?.username,
     refetchInterval: 60000,
+  });
+
+  // Fetch detailed tip history (includes tipper messages, unlike raw on-chain activity)
+  const { data: tipHistoryData, isLoading: tipHistoryLoading } = useQuery({
+    queryKey: ["tipHistory", user?.username],
+    queryFn: async () => {
+      if (!user?.username) return null;
+      const res = await fetch(`/api/tips/history?username=${user.username}`);
+      if (!res.ok) throw new Error("Failed to fetch tip history");
+      return res.json();
+    },
+    enabled: !!user?.username,
+    refetchInterval: 30000,
   });
 
   function copyLink() {
@@ -476,40 +504,50 @@ export default function Dashboard() {
           </div>
         )}
 
-        {activeTab === "tips" && (
+       {activeTab === "tips" && (
           <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
             <h3 className="text-base font-semibold text-[#111827] mb-1">
               Tip History
             </h3>
             <p className="text-sm text-[#6B7280] mb-4">
-              All incoming tips to your wallet
+              All tips recorded to your Tip Jar, including messages from fans
             </p>
-            {txLoading ? (
+            {tipHistoryLoading ? (
               <p className="text-sm text-[#6B7280] py-4">Loading...</p>
-            ) : incomingTxns.length === 0 ? (
+            ) : !tipHistoryData?.tips || tipHistoryData.tips.length === 0 ? (
               <p className="text-sm text-[#6B7280] py-4">
                 No tips received yet.
               </p>
             ) : (
               <div className="space-y-0">
-                {incomingTxns.map((tx) => (
+                {tipHistoryData.tips.map((tip) => (
                   <div
-                    key={tx.hash}
-                    className="flex items-center gap-4 py-3 border-b border-[#F3F4F6] last:border-0"
+                    key={tip.id}
+                    className="flex items-start gap-4 py-3.5 border-b border-[#F3F4F6] last:border-0"
                   >
-                    <div className="w-9 h-9 rounded-lg bg-green-50 text-green-600 border border-green-200 flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-lg bg-green-50 text-green-600 border border-green-200 flex items-center justify-center flex-shrink-0">
                       <ArrowDownLeft size={16} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-[#111827]">
-                        From {formatAddress(tx.from)}
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <p className="text-xs text-[#6B7280]">
-                          {formatDate(tx.timestamp)}
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm text-[#111827]">
+                          From {formatAddress(tip.tipperAddress)}
                         </p>
-                        <a
-                          href={`${ARC_EXPLORER}/tx/${tx.hash}`}
+                        <span className="text-sm font-semibold text-green-600 flex-shrink-0">
+                          +{tip.amountUsdc || tip.amount} USDC
+                        </span>
+                      </div>
+                      {tip.message && (
+                        <p className="text-sm text-[#374151] bg-[#F9FAFB] rounded-lg px-3 py-2 mt-1.5 mb-1.5 italic">
+                          "{tip.message}"
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-xs text-[#6B7280]">
+                          {formatDate(tip.createdAt)}
+                        </p>
+                        
+                          href={`${ARC_EXPLORER}/tx/${tip.txHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-xs text-[#7c3aed] hover:text-[#6d28d9] flex items-center gap-0.5"
@@ -518,9 +556,6 @@ export default function Dashboard() {
                         </a>
                       </div>
                     </div>
-                    <span className="text-sm font-semibold text-green-600">
-                      +{tx.valueUsdc} USDC
-                    </span>
                   </div>
                 ))}
               </div>
@@ -663,7 +698,7 @@ export default function Dashboard() {
               <p className="text-sm text-[#6B7280] mb-4">
                 Send USDC directly to any address on Arc Testnet
               </p>
-              <SendUSDCForm walletAddress={user.walletAddress} />
+              <SendUSDCForm walletAddress={user.walletAddress} username={user.username} />
             </div>
           </div>
         )}

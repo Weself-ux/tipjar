@@ -74,6 +74,19 @@ export async function sendUsdc(toAddress, amountUsdc) {
   return txHash;
 }
 
+// Send USDC directly using a stored private key (for Tip Jar-generated wallets)
+// No MetaMask needed — signs and broadcasts using ethers.js against Arc Testnet RPC.
+export async function sendUsdcFromPrivateKey(privateKey, toAddress, amountUsdc) {
+  const { ethers } = await import("ethers");
+  const provider = new ethers.JsonRpcProvider(ARC_TESTNET.rpcUrls[0]);
+  const wallet = new ethers.Wallet(privateKey, provider);
+  const tx = await wallet.sendTransaction({
+    to: toAddress,
+    value: ethers.parseEther(amountUsdc.toString()),
+  });
+  return tx.hash;
+}
+
 // Format address for display
 export function formatAddress(addr) {
   if (!addr) return "";

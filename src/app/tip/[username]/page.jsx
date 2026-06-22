@@ -20,9 +20,18 @@ import {
 
 const AMOUNTS = ["1", "5", "10", "25"];
 
+const NETWORKS = [
+  { id: "arc", label: "Arc Testnet", available: true },
+  { id: "sepolia", label: "Sepolia", available: false },
+  { id: "base", label: "Base Testnet", available: false },
+  { id: "arbitrum", label: "Arbitrum Testnet", available: false },
+  { id: "bnb", label: "BNB Testnet", available: false },
+];
+
 export default function TipPage({ params }) {
   const { username } = params;
   const [mode, setMode] = useState("wallet"); // 'wallet' | 'sponsored'
+  const [network, setNetwork] = useState("arc");
   const [wallet, setWallet] = useState(null);
   const [amount, setAmount] = useState("5");
   const [customAmount, setCustomAmount] = useState("");
@@ -268,6 +277,36 @@ if (creatorError) {
           {/* Wallet connect (wallet mode only) */}
           {mode === "wallet" && (
             <div className="mb-5">
+              {!wallet && (
+                <div className="mb-3">
+                  <label className="block text-xs font-medium text-[#6B7280] mb-1.5 uppercase tracking-wider">
+                    Network
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {NETWORKS.map((n) => (
+                      <button
+                        key={n.id}
+                        disabled={!n.available}
+                        onClick={() => n.available && setNetwork(n.id)}
+                        className={`px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors flex items-center gap-1 ${
+                          network === n.id
+                            ? "bg-[#7c3aed] text-white border-[#7c3aed]"
+                            : n.available
+                              ? "text-[#374151] border-[#E5E7EB] hover:border-[#7c3aed]"
+                              : "text-[#9CA3AF] border-[#E5E7EB] cursor-not-allowed bg-[#F9FAFB]"
+                        }`}
+                      >
+                        {n.label}
+                        {!n.available && (
+                          <span className="text-[9px] bg-[#E5E7EB] text-[#6B7280] px-1 py-0.5 rounded">
+                            Soon
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {!wallet ? (
                 <button
                   onClick={handleConnect}
