@@ -547,7 +547,7 @@ export default function Dashboard() {
                           {formatDate(tip.createdAt)}
                         </p>
                         
-                          href={`${ARC_EXPLORER}/tx/${tip.txHash}`}
+                         <a href={`${ARC_EXPLORER}/tx/${tip.txHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-xs text-[#7c3aed] hover:text-[#6d28d9] flex items-center gap-0.5"
