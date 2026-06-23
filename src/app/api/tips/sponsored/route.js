@@ -3,11 +3,13 @@
 // on behalf of a tipper who doesn't have USDC on Arc.
 // Requires: CIRCLE_API_KEY, CIRCLE_ENTITY_SECRET, CIRCLE_PLATFORM_WALLET_ID env vars.
 
-import { initiateDeveloperControlledWalletsClient } from "@circle-fin/developer-controlled-wallets";
 import sql from "@/app/api/utils/sql";
 import { rateLimit, getClientIP } from "@/app/api/utils/auth-helpers";
 
-function getCircleClient() {
+async function getCircleClient() {
+  const { initiateDeveloperControlledWalletsClient } = await import(
+    "@circle-fin/developer-controlled-wallets"
+  );
   return initiateDeveloperControlledWalletsClient({
     apiKey: process.env.CIRCLE_API_KEY,
     entitySecret: process.env.CIRCLE_ENTITY_SECRET,
@@ -15,7 +17,7 @@ function getCircleClient() {
 }
 
 async function circleTransfer(toAddress, amountUsdc) {
-  const client = getCircleClient();
+  const client = await getCircleClient();
 
   const response = await client.createTransaction({
     walletId: process.env.CIRCLE_PLATFORM_WALLET_ID,
