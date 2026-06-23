@@ -29,12 +29,16 @@ const FAN_STEPS = [
     desc: "Click the tip link shared by your favourite creator. You will land on their personal Tip Jar page showing their username.",
   },
   {
-    title: "Connect Your Wallet",
-    desc: "Connect your wallet. Make sure you have USDC on Arc Testnet. You can get free test USDC from faucet.circle.com.",
+    title: "Choose How to Tip",
+    desc: "Connect your wallet if you already have USDC on Arc Testnet — or pick the no-wallet option and tip using just your email, no crypto wallet required.",
+  },
+  {
+    title: "Connect Your Wallet (Optional)",
+    desc: "If you choose the wallet option, connect your wallet and make sure you have USDC on Arc Testnet. You can get free test USDC from faucet.circle.com.",
   },
   {
     title: "Choose an Amount and Send",
-    desc: "Pick a preset amount — 1, 5, 10 or 25 USDC — or enter a custom amount. Add an optional message then click Send. MetaMask will ask you to confirm.",
+    desc: "Pick a preset amount — 1, 5, 10 or 25 USDC — or enter a custom amount. Add an optional message then click Send.",
   },
   {
     title: "Done",

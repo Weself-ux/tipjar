@@ -1,6 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
+import {
   Copy,
   Check,
   ExternalLink,
@@ -315,6 +324,7 @@ export default function Dashboard() {
   const tabs = [
     { id: "overview", label: "Overview", icon: LayoutDashboard },
     { id: "tips", label: "Tip History", icon: ArrowDownLeft },
+    { id: "analytics", label: "Analytics", icon: BarChart3 },
     { id: "wallet", label: "Wallet", icon: Wallet },
   ];
 
@@ -560,6 +570,141 @@ export default function Dashboard() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+{activeTab === "analytics" && (
+          <div className="space-y-4">
+            {/* Earnings Overview */}
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-base font-semibold text-[#111827]">
+                  Earnings (Last 30 Days)
+                </h3>
+                <span className="text-lg font-semibold text-[#7c3aed]">
+                  {(analyticsData?.totalEarnings || 0).toFixed(2)} USDC total
+                </span>
+              </div>
+              <p className="text-sm text-[#6B7280] mb-4">
+                Daily USDC tips received over the past month
+              </p>
+              {!analyticsData?.earningsOverTime ||
+              analyticsData.earningsOverTime.length === 0 ? (
+                <p className="text-sm text-[#6B7280] py-8 text-center">
+                  No earnings yet — share your tip link to get started!
+                </p>
+              ) : (
+                <ResponsiveContainer width="100%" height={220}>
+                  <AreaChart data={analyticsData.earningsOverTime}>
+                    <defs>
+                      <linearGradient
+                        id="earningsGradient"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="0%"
+                          stopColor="#7c3aed"
+                          stopOpacity={0.25}
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor="#7c3aed"
+                          stopOpacity={0}
+                        />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="#F3F4F6"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={(d) =>
+                        new Date(d).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                        })
+                      }
+                      tick={{ fontSize: 11, fill: "#6B7280" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: "#6B7280" }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={36}
+                    />
+                    <Tooltip
+                      formatter={(value) => [`${value} USDC`, "Earned"]}
+                      labelFormatter={(d) =>
+                        new Date(d).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })
+                      }
+                      contentStyle={{
+                        borderRadius: 8,
+                        border: "1px solid #E5E7EB",
+                        fontSize: 12,
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="total"
+                      stroke="#7c3aed"
+                      strokeWidth={2}
+                      fill="url(#earningsGradient)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+
+            {/* Top Supporters */}
+            <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
+              <h3 className="text-base font-semibold text-[#111827] mb-1">
+                Top Supporters
+              </h3>
+              <p className="text-sm text-[#6B7280] mb-4">
+                Your biggest tippers by total amount sent
+              </p>
+              {!analyticsData?.topTippers ||
+              analyticsData.topTippers.length === 0 ? (
+                <p className="text-sm text-[#6B7280] py-4">
+                  No tips yet — your top supporters will show up here.
+                </p>
+              ) : (
+                <div className="space-y-0">
+                  {analyticsData.topTippers.map((tipper, i) => (
+                    <div
+                      key={tipper.address}
+                      className="flex items-center gap-3 py-3 border-b border-[#F3F4F6] last:border-0"
+                    >
+                      <div className="w-7 h-7 rounded-full bg-[#F3E8FF] text-[#7c3aed] text-xs font-semibold flex items-center justify-center flex-shrink-0">
+                        #{i + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-[#111827] font-medium">
+                          {formatAddress(tipper.address)}
+                        </p>
+                        <p className="text-xs text-[#6B7280]">
+                          {tipper.tipCount} tip{tipper.tipCount !== 1 ? "s" : ""}
+                        </p>
+                      </div>
+                      <span className="text-sm font-semibold text-green-600 flex-shrink-0">
+                        {tipper.totalAmount.toFixed(2)} USDC
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
