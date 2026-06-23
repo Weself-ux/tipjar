@@ -8,7 +8,7 @@
 	},
 	"dependencies": {
 		"@auth/core": "^0.37.2",
-		"@circle-fin/developer-controlled-wallets": "^2.2.0",
+		"@circle-fin/developer-controlled-wallets": "^10.6.0",
 		"@babel/generator": "^7.27.1",
 		"@chakra-ui/react": "2.8.2",
 		"@dnd-kit/core": "^6.3.1",
@@ -34,7 +34,6 @@
 		"color2k": "^2.0.3",
 		"date-fns": "^4.1.0",
 		"downshift": "^9.0.9",
-		"ethers": "^6.13.4",
 		"ethers": "^6.16.0",
 		"html-to-image": "^1.11.13",
 		"isbot": "^5.1.27",
