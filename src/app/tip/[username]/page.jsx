@@ -118,8 +118,8 @@ export default function TipPage({ params }) {
       setStatus("Enter a valid amount.");
       return;
     }
-    if (Number(finalAmount) > 100) {
-      setStatus("Sponsored tips are limited to 100 USDC.");
+    if (Number(finalAmount) > 10) {
+      setStatus("Sponsored tips are limited to 10 USDC.");
       return;
     }
     try {
@@ -242,7 +242,7 @@ if (creatorError) {
             }}
             className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium border-b-2 -mb-[1px] transition-colors ${mode === "wallet" ? "text-[#7c3aed] border-[#7c3aed]" : "text-[#6B7280] border-transparent hover:text-[#111827]"}`}
           >
-            <Wallet size={15} /> MetaMask
+            <Wallet size={15} /> Wallet
           </button>
           <button
             onClick={() => {
@@ -269,7 +269,9 @@ if (creatorError) {
                   No crypto wallet needed.
                 </span>{" "}
                 The tip is sent directly to the creator in USDC on Arc Testnet
-                via Circle. Powered by Circle Programmable Wallets.
+                via Circle. Powered by Circle Programmable Wallets. 
+                
+                NOTE: THIS FEATURE IS FOR TESTING PURPOSES ONLY 
               </p>
             </div>
           )}
@@ -320,7 +322,7 @@ if (creatorError) {
                       e.target.style.display = "none";
                     }}
                   />
-                  Connect MetaMask
+                  Connect Wallet
                 </button>
               ) : (
                 <div className="flex items-center justify-between bg-[#F0FDF4] border border-[#BBF7D0] rounded-xl px-4 py-2.5">

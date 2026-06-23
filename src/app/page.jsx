@@ -168,7 +168,7 @@ export default function Landing() {
               <div className="flex border-b border-[#E5E7EB] mb-4">
                 <div className="flex-1 text-center py-2 border-b-2 border-[#7c3aed]">
                   <p className="text-xs font-semibold text-[#7c3aed] flex items-center justify-center gap-1">
-                    <Wallet size={11} /> MetaMask
+                    <Wallet size={11} /> Wallet
                   </p>
                 </div>
                 <div className="flex-1 text-center py-2 relative">
@@ -328,7 +328,7 @@ export default function Landing() {
               {
                 step: "02",
                 title: "Connect or generate a wallet",
-                desc: "Connect MetaMask or generate a fresh wallet. Your address stays private — fans never see it.",
+                desc: "Connect Wallet or generate a fresh wallet. Your address stays private — fans never see it.",
               },
               {
                 step: "03",

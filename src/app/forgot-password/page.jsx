@@ -5,17 +5,10 @@ const EMAILJS_SERVICE = "service_3ub0w2v";
 const EMAILJS_TEMPLATE = "template_tan8syy";
 const EMAILJS_PUBLIC_KEY = "a7C5T6Unk9oPR7CXL";
 
-// Helper — proxies email through our backend to avoid CORS issues with EmailJS
+// Helper — sends email directly from the browser via EmailJS (dynamic import keeps this out of SSR)
 async function sendEmailJS(serviceId, templateId, templateParams, publicKey) {
-  const res = await fetch("/api/email/send", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ serviceId, templateId, templateParams, publicKey }),
-  });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || "Email send failed");
-  }
+  const { default: emailjs } = await import("@emailjs/browser");
+  await emailjs.send(serviceId, templateId, templateParams, publicKey);
 }
 
 function generateOTP() {

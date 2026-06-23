@@ -1,43 +1,51 @@
 // Sponsored Tip via Circle Programmable Wallets
 // The platform wallet sends USDC to the creator on Arc Testnet
 // on behalf of a tipper who doesn't have USDC on Arc.
-// Requires: CIRCLE_API_KEY, CIRCLE_PLATFORM_WALLET_ID env vars.
+// Requires: CIRCLE_API_KEY, CIRCLE_ENTITY_SECRET, CIRCLE_PLATFORM_WALLET_ID env vars.
 
+import { initiateDeveloperControlledWalletsClient } from "@circle-fin/developer-controlled-wallets";
 import sql from "@/app/api/utils/sql";
 import { rateLimit, getClientIP } from "@/app/api/utils/auth-helpers";
 
-const CIRCLE_API = "https://api.circle.com/v1/w3s";
+function getCircleClient() {
+  return initiateDeveloperControlledWalletsClient({
+    apiKey: process.env.CIRCLE_API_KEY,
+    entitySecret: process.env.CIRCLE_ENTITY_SECRET,
+  });
+}
 
 async function circleTransfer(toAddress, amountUsdc) {
-  const idempotencyKey = crypto.randomUUID();
+  const client = getCircleClient();
 
-  const res = await fetch(`${CIRCLE_API}/developer/transactions/transfer`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.CIRCLE_API_KEY}`,
-      "Content-Type": "application/json",
+  const response = await client.createTransaction({
+    walletId: process.env.CIRCLE_PLATFORM_WALLET_ID,
+    destinationAddress: toAddress,
+    // USDC is the native currency on Arc Testnet — no tokenId needed
+    amounts: [amountUsdc.toString()],
+    fee: {
+      type: "level",
+      config: { feeLevel: "MEDIUM" },
     },
-    body: JSON.stringify({
-      idempotencyKey,
-      walletId: process.env.CIRCLE_PLATFORM_WALLET_ID,
-      destinationAddress: toAddress,
-      // USDC is the native currency on Arc — amount in USDC
-      amounts: [amountUsdc.toString()],
-      fee: {
-        type: "custom",
-        config: {
-          maxFee: "0.05",
-          priorityFee: "0.001",
-        },
-      },
-    }),
   });
 
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.message || "Circle transfer failed");
+  const transactionId = response.data?.id;
+  if (!transactionId) {
+    throw new Error("Circle did not return a transaction ID.");
   }
-  return data;
+
+  // Give the network a moment, then check if the on-chain hash is ready.
+  // If it's not ready yet, we fall back to Circle's own transaction ID —
+  // the real on-chain hash becomes available shortly after on Circle's dashboard.
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+  try {
+    const statusResponse = await client.getTransaction({ id: transactionId });
+    const txHash = statusResponse.data?.transaction?.txHash;
+    if (txHash) return txHash;
+  } catch {
+    // Ignore — fall back to the Circle transaction ID below.
+  }
+
+  return transactionId;
 }
 
 export async function action({ request }) {
@@ -76,7 +84,11 @@ export async function action({ request }) {
     }
 
     // Check env vars
-    if (!process.env.CIRCLE_API_KEY || !process.env.CIRCLE_PLATFORM_WALLET_ID) {
+    if (
+      !process.env.CIRCLE_API_KEY ||
+      !process.env.CIRCLE_ENTITY_SECRET ||
+      !process.env.CIRCLE_PLATFORM_WALLET_ID
+    ) {
       return Response.json(
         {
           error: "Sponsored tips are not configured yet. Contact the platform.",
@@ -103,12 +115,10 @@ export async function action({ request }) {
     }
 
     // Execute transfer via Circle
-    const transfer = await circleTransfer(
+    const txHash = await circleTransfer(
       creator.wallet_address,
       Number(amountUsdc),
     );
-
-    const txHash = transfer?.data?.id || transfer?.id || `circle_${Date.now()}`;
 
     // Record in database
     await sql(

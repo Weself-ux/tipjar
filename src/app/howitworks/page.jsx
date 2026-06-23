@@ -7,7 +7,7 @@ const CREATOR_STEPS = [
   },
   {
     title: "Connect or Generate a Wallet",
-    desc: "Connect your existing MetaMask wallet or let Tip Jar generate a brand new one for you instantly. Your wallet address is never shown publicly — only your username is.",
+    desc: "Connect your existing wallet or let Tip Jar generate a brand new one for you instantly. Your wallet address is never shown publicly — only your username is.",
   },
   {
     title: "Share Your Link",
@@ -15,7 +15,7 @@ const CREATOR_STEPS = [
   },
   {
     title: "Receive Tips Instantly",
-    desc: "When a fan sends a tip, the USDC lands directly in your wallet on Arc Testnet in under a second. You can track all incoming tips in your dashboard.",
+    desc: "When a fan sends a tip, the USDC lands directly in your wallet on Arc Testnet in under a second. You also get to track all incoming tips in your dashboard.",
   },
   {
     title: "Send or Withdraw Anytime",
@@ -30,7 +30,7 @@ const FAN_STEPS = [
   },
   {
     title: "Connect Your Wallet",
-    desc: "Connect your MetaMask wallet. Make sure you have USDC on Arc Testnet. You can get free test USDC from faucet.circle.com.",
+    desc: "Connect your wallet. Make sure you have USDC on Arc Testnet. You can get free test USDC from faucet.circle.com.",
   },
   {
     title: "Choose an Amount and Send",
@@ -195,7 +195,7 @@ export default function HowItWorks() {
               Ready to get started?
             </h2>
             <p className="text-sm text-[#6B7280] mb-8">
-              Set up your Tip Jar in under 2 minutes. Free forever.
+              Set up your Tip Jar in under 2 minutes.
             </p>
             <a
               href="/signup"

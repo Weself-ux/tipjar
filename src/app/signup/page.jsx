@@ -631,7 +631,7 @@ export default function Signup() {
                   </div>
                   <div>
                     <span className="text-sm font-semibold text-[#111827] block">
-                      Connect MetaMask
+                      Connect Wallet
                     </span>
                     <span className="text-xs text-[#6B7280]">
                       Use your existing wallet
