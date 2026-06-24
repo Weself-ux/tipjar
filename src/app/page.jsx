@@ -42,7 +42,7 @@ const FAQS = [
   },
   {
     q: "Can fans tip without a crypto wallet?",
-    a: 'Yes. Our "No Wallet Needed" mode — powered by Circle Programmable Wallets — lets anyone send USDC to a creator on Arc Testnet without needing MetaMask or any crypto.',
+    a: 'Yes. Our "No Wallet Needed" mode — powered by Circle Programmable Wallets — lets anyone send USDC to a creator on Arc Testnet without needing Wallet or any crypto.',
   },
   {
     q: "Do I need crypto experience?",
@@ -82,23 +82,14 @@ export default function Landing() {
               Tip Jar
             </span>
           </a>
-          <div className="hidden sm:flex items-center gap-6 text-sm text-[#6B7280]">
-            <a
-              href="/howitworks"
-              className="hover:text-[#111827] transition-colors"
-            >
-              How It Works
-            </a>
-          </div>
           <div className="flex items-center gap-2">
             <a
               href="/login"
-              className="hidden sm:block px-4 py-2 text-sm font-medium text-[#6B7280] hover:text-[#111827] transition-colors rounded-lg"
+              className="px-4 py-2 text-sm font-medium text-[#6B7280] hover:text-[#111827] transition-colors rounded-lg"
             >
               Log in
             </a>
-            <a
-              href="/signup"
+            <a href="/signup"
               className="px-4 py-2 text-sm font-bold text-white bg-[#7c3aed] rounded-lg hover:bg-[#6d28d9] transition-colors shadow-sm"
             >
               Get Started
@@ -140,9 +131,9 @@ export default function Landing() {
           </div>
           <div className="flex flex-wrap gap-x-5 gap-y-2 justify-center lg:justify-start">
             {[
-              "Free forever",
+              "Private",
               "Zero platform fees",
-              "No crypto needed to tip",
+              "No credit card needed to tip",
             ].map((t) => (
               <span
                 key={t}
@@ -218,7 +209,7 @@ export default function Landing() {
               </h2>
               <p className="text-white/80 text-sm leading-relaxed mb-6 max-w-lg">
                 With Tip Jar's "No Wallet Needed" mode, anyone can send USDC
-                directly to you on Arc Testnet. No MetaMask. No seed phrase. No
+                directly to you on Arc Testnet. No Wallet. No seed phrase. No
                 gas fees to worry about. The tip settles on-chain in under a
                 second — powered by Circle.
               </p>
@@ -240,7 +231,7 @@ export default function Landing() {
                   {
                     n: "2",
                     t: 'Picks "No Wallet Needed"',
-                    d: "No MetaMask popup. No seed phrase. Just amount + send.",
+                    d: "No Wallet popup. No seed phrase. Just amount + send.",
                   },
                   {
                     n: "3",
@@ -402,21 +393,12 @@ export default function Landing() {
 
       {/* CTA */}
       <section className="bg-white border-t border-[#E5E7EB]">
-        <div className="max-w-[560px] mx-auto px-6 py-20 text-center">
-          <h2 className="text-2xl font-bold text-[#111827] tracking-tight mb-3">
+        <div className="max-w-[560px] mx-auto px-6 py-16 text-center">
+          <h2 className="text-3xl font-bold text-[#111827] tracking-tight mb-2">
             Start receiving tips today
           </h2>
-          <p className="text-sm text-[#6B7280] mb-8">
-            Set up in 2 minutes. Free forever. Zero fees.
-          </p>
-          <a
-            href="/signup"
-            className="inline-flex items-center gap-2 px-8 py-3.5 text-sm font-bold text-white bg-[#7c3aed] rounded-xl hover:bg-[#6d28d9] transition-colors shadow-sm shadow-[#7c3aed]/25"
-          >
-            Create My Tip Jar <ArrowRight size={15} />
-          </a>
-          <p className="text-xs text-[#9CA3AF] mt-4">
-            No credit card · No wallet to tip · Built on Arc & Circle
+          <p className="text-base text-[#6B7280]">
+            Set up in 2 minutes. Zero fees.
           </p>
         </div>
       </section>

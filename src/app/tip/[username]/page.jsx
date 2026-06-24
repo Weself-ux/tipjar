@@ -42,6 +42,7 @@ export default function TipPage({ params }) {
   const [txHash, setTxHash] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMode, setSuccessMode] = useState("");
+  const [sentAmount, setSentAmount] = useState("");
 
   const {
     data: creator,
@@ -102,6 +103,7 @@ export default function TipPage({ params }) {
       } catch {}
       setSuccessMode("wallet");
       setShowSuccess(true);
+      setSentAmount(finalAmount);
       setAmount("5");
       setCustomAmount("");
       setMessage("");
@@ -140,6 +142,7 @@ export default function TipPage({ params }) {
       setTxHash(data.txId || "");
       setSuccessMode("sponsored");
       setShowSuccess(true);
+      setSentAmount(finalAmount);
       setAmount("5");
       setCustomAmount("");
       setMessage("");
@@ -511,8 +514,8 @@ if (creatorError) {
             </h2>
             <p className="text-sm text-[#6B7280] mb-6">
               {successMode === "sponsored"
-                ? `$${finalAmount || amount} USDC was sent to @${creator.username} via Circle on Arc Testnet. No wallet needed — it just worked.`
-                : `$${finalAmount || amount} USDC arrived in @${creator.username}'s wallet on Arc Testnet in under a second.`}
+                ? `$${sentAmount} USDC was sent to @${creator.username} via Circle on Arc Testnet. No wallet needed — it just worked.`
+                : `$${sentAmount} USDC arrived in @${creator.username}'s wallet on Arc Testnet in under a second.`}
             </p>
 
             {txHash && (
