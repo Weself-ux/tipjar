@@ -33,25 +33,6 @@ if (globalThis.window && globalThis.window !== undefined) {
   globalThis.window.fetch = fetch;
 }
 
-const LoadFontsSSR = import.meta.env.SSR ? LoadFonts : null;
-if (import.meta.hot) {
-  import.meta.hot.on('update-font-links', (urls: string[]) => {
-    // remove old font links
-    for (const link of document.querySelectorAll('link[data-auto-font]')) {
-      link.remove();
-    }
-
-    // add new ones
-    for (const url of urls) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = url;
-      link.dataset.autoFont = 'true';
-      document.head.appendChild(link);
-    }
-  });
-}
-
 function InternalErrorBoundary({ error: errorArg }: Route.ErrorBoundaryProps) {
   const routeError = useRouteError();
   const asyncError = useAsyncError();
@@ -302,7 +283,10 @@ export function Layout({ children }: { children: ReactNode }) {
         <Meta />
         <Links />
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-        {LoadFontsSSR ? <LoadFontsSSR /> : null}
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=block"
+        />
       </head>
       <body>
         <ClientOnly loader={() => children} />

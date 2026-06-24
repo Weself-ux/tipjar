@@ -7,7 +7,6 @@ import { addRenderIds } from './plugins/addRenderIds';
 import { aliases } from './plugins/aliases';
 import consoleToParent from './plugins/console-to-parent';
 import { layoutWrapperPlugin } from './plugins/layouts';
-import { loadFontsFromTailwindSource } from './plugins/loadFontsFromTailwindSource';
 import { nextPublicProcessEnv } from './plugins/nextPublicProcessEnv';
 import { restart } from './plugins/restart';
 import { restartEnvFileChange } from './plugins/restartEnvFileChange';
@@ -54,7 +53,6 @@ export default defineConfig({
       ],
     }),
     consoleToParent(),
-    loadFontsFromTailwindSource(),
     addRenderIds(),
     reactRouter(),
     tsconfigPaths(),
