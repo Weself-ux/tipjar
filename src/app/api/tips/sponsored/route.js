@@ -16,16 +16,26 @@ async function getCircleClient() {
   });
 }
 
+// USDC's contract address on Arc Testnet. Even though USDC is Arc's native
+// gas token, moving USDC balances between wallets is done as a standard
+// ERC-20 contract call, per Circle's own Arc documentation — not the
+// generic "native currency transfer" method.
+const USDC_CONTRACT_ARC_TESTNET = "0x3600000000000000000000000000000000000000";
+
 async function circleTransfer(toAddress, amountUsdc) {
   const client = await getCircleClient();
 
-  const response = await client.createTransaction({
+  // USDC uses 6 decimals (the standard for USDC everywhere), so convert
+  // the human-readable amount into USDC's smallest unit.
+  const amountInSmallestUnits = Math.round(
+    Number(amountUsdc) * 1_000_000,
+  ).toString();
+
+  const response = await client.createContractExecutionTransaction({
     walletId: process.env.CIRCLE_PLATFORM_WALLET_ID,
-    destinationAddress: toAddress,
-    amount: [amountUsdc.toString()],
-    // Empty tokenAddress tells Circle this is a native-currency transfer —
-    // USDC is the native gas token on Arc Testnet, not an ERC-20.
-    tokenAddress: "",
+    contractAddress: USDC_CONTRACT_ARC_TESTNET,
+    abiFunctionSignature: "transfer(address,uint256)",
+    abiParameters: [toAddress, amountInSmallestUnits],
     fee: {
       type: "level",
       config: { feeLevel: "MEDIUM" },
