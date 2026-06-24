@@ -73,6 +73,9 @@ export default defineConfig({
   build: {
     target: 'esnext',
   },
+  ssr: {
+    noExternal: ['@circle-fin/developer-controlled-wallets'],
+  },
   clearScreen: false,
   server: {
     allowedHosts: true,
