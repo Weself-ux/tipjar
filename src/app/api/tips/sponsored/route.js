@@ -22,8 +22,10 @@ async function circleTransfer(toAddress, amountUsdc) {
   const response = await client.createTransaction({
     walletId: process.env.CIRCLE_PLATFORM_WALLET_ID,
     destinationAddress: toAddress,
-    // USDC is the native currency on Arc Testnet — no tokenId needed
-    amounts: [amountUsdc.toString()],
+    amount: [amountUsdc.toString()],
+    // Empty tokenAddress tells Circle this is a native-currency transfer —
+    // USDC is the native gas token on Arc Testnet, not an ERC-20.
+    tokenAddress: "",
     fee: {
       type: "level",
       config: { feeLevel: "MEDIUM" },
