@@ -23,8 +23,16 @@ export async function action({ request }) {
     }
 
     const body = await request.json();
-    const { fullName, email, username, password, dateOfBirth, walletAddress } =
-      body;
+    const {
+      fullName,
+      email,
+      username: rawUsername,
+      password,
+      dateOfBirth,
+      walletAddress,
+    } = body;
+    const username =
+      typeof rawUsername === "string" ? rawUsername.toLowerCase() : rawUsername;
 
     // Server-side validation
     if (!fullName || fullName.trim().length < 2) {

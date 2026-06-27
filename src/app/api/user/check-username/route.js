@@ -3,7 +3,9 @@ import sql from "@/app/api/utils/sql";
 export async function loader({ request }) {
   try {
     const url = new URL(request.url);
-    const username = url.searchParams.get("username");
+    const rawUsername = url.searchParams.get("username");
+    const username =
+      typeof rawUsername === "string" ? rawUsername.toLowerCase() : rawUsername;
 
     if (!username || username.length < 5) {
       return Response.json({

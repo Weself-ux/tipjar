@@ -233,7 +233,7 @@ export default function HowItWorks() {
               Home
             </a>
             <a
-              href="mailto:support@tipjar.app"
+              href="mailto:tipjar011@gmail.com"
               className="text-xs text-[#6B7280] hover:text-[#111827] transition-colors flex items-center gap-1"
             >
               <Mail size={12} /> Contact

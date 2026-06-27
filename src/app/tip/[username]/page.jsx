@@ -120,8 +120,8 @@ export default function TipPage({ params }) {
       setStatus("Enter a valid amount.");
       return;
     }
-    if (Number(finalAmount) > 10) {
-      setStatus("Sponsored tips are limited to 10 USDC.");
+    if (Number(finalAmount) > 100) {
+      setStatus("Sponsored tips are limited to 100 USDC.");
       return;
     }
     try {
@@ -206,15 +206,7 @@ if (creatorError) {
   if (creatorLoading || !creator) {
     return (
       <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
-        <Loader2
-          size={24}
-          className="text-[#7c3aed]"
-          style={{ animation: "spin 1s linear infinite" }}
-        />
-        <style
-          jsx
-          global
-        >{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+        <Loader2 size={24} className="text-[#7c3aed] animate-spin" />
       </div>
     );
   }
@@ -434,10 +426,7 @@ if (creatorError) {
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
-                  <Loader2
-                    size={16}
-                    style={{ animation: "spin 1s linear infinite" }}
-                  />{" "}
+                  <Loader2 size={16} className="animate-spin" />{" "}
                   {status || "Sending..."}
                 </span>
               ) : (
@@ -452,10 +441,7 @@ if (creatorError) {
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
-                  <Loader2
-                    size={16}
-                    style={{ animation: "spin 1s linear infinite" }}
-                  />{" "}
+                  <Loader2 size={16} className="animate-spin" />{" "}
                   {status || "Processing..."}
                 </span>
               ) : (
@@ -560,10 +546,6 @@ if (creatorError) {
           </div>
         </div>
       )}
-
-      <style jsx global>{`
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      `}</style>
     </div>
   );
 }

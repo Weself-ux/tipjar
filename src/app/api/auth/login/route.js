@@ -45,7 +45,7 @@ export async function action({ request }) {
 
     if (rows.length === 0) {
       return Response.json(
-        { error: "No account found with this email." },
+        { error: "Incorrect email or password." },
         { status: 401 },
       );
     }
@@ -55,7 +55,10 @@ export async function action({ request }) {
     // Verify password with argon2
     const validPassword = await argon2.verify(user.password_hash, password);
     if (!validPassword) {
-      return Response.json({ error: "Incorrect password." }, { status: 401 });
+      return Response.json(
+        { error: "Incorrect email or password." },
+        { status: 401 },
+      );
     }
 
     // Create session

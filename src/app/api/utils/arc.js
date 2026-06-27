@@ -78,6 +78,61 @@ export async function getTransactions(address, page = 1, limit = 20) {
   return [];
 }
 
+// Verify a tip transaction actually happened on-chain before trusting it.
+// Without this, anyone could POST a made-up txHash/amount and have it
+// recorded as a real tip with nothing actually moving on-chain.
+export async function verifyArcTransaction(txHash, expectedTo, expectedAmountUsdc) {
+  const txResponse = await fetch(ARC_CONFIG.rpcUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      method: "eth_getTransactionByHash",
+      params: [txHash],
+      id: 1,
+    }),
+  });
+  const txData = await txResponse.json();
+  const tx = txData.result;
+  if (!tx) {
+    return { valid: false, reason: "Transaction not found on Arc Testnet." };
+  }
+  if (!tx.blockNumber) {
+    return { valid: false, reason: "Transaction is not yet confirmed." };
+  }
+
+  const receiptResponse = await fetch(ARC_CONFIG.rpcUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      method: "eth_getTransactionReceipt",
+      params: [txHash],
+      id: 2,
+    }),
+  });
+  const receiptData = await receiptResponse.json();
+  const receipt = receiptData.result;
+  if (!receipt || receipt.status !== "0x1") {
+    return { valid: false, reason: "Transaction failed or could not be verified." };
+  }
+
+  if (
+    !tx.to ||
+    tx.to.toLowerCase() !== expectedTo.toLowerCase()
+  ) {
+    return { valid: false, reason: "Transaction destination does not match." };
+  }
+
+  const actualUsdc = parseFloat(weiToUsdc(BigInt(tx.value).toString()));
+  const expectedUsdcNum = parseFloat(expectedAmountUsdc);
+  if (Math.abs(actualUsdc - expectedUsdcNum) > 0.000001) {
+    return { valid: false, reason: "Transaction amount does not match." };
+  }
+
+  return { valid: true, from: tx.from, to: tx.to, amountUsdc: actualUsdc.toString() };
+}
+
 // Verify a contract/address exists on Arc before trusting it
 export async function verifyAddressExists(address) {
   try {

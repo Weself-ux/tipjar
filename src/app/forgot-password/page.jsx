@@ -48,6 +48,15 @@ export default function ForgotPassword() {
       const expiry = Date.now() + 15 * 60 * 1000;
       setSentOtp(JSON.stringify({ code, expiry }));
 
+      const registerRes = await fetch("/api/auth/request-password-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, code }),
+      });
+      if (!registerRes.ok) {
+        throw new Error("Could not start password reset.");
+      }
+
       await sendEmailJS(
         EMAILJS_SERVICE,
         EMAILJS_TEMPLATE,
@@ -96,10 +105,12 @@ export default function ForgotPassword() {
     }
     setLoading(true);
     try {
+      const { code } = JSON.parse(sentOtp);
+    const { code } = JSON.parse(sentOtp);
       const res = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, newPassword }),
+        body: JSON.stringify({ email, code, newPassword }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Reset failed.");

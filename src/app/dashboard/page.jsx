@@ -15,6 +15,7 @@ import {
   Lock,
   Eye,
   EyeOff,
+  History,
 } from "lucide-react";
 import useSession from "../../utils/useSession";
 import {
@@ -149,7 +150,7 @@ function SendUSDCForm({ walletAddress, username }) {
 }
 
 export default function Dashboard() {
-  const { user, loading: sessionLoading, logout } = useSession();
+  const { user, loading: sessionLoading, logout, getToken } = useSession();
   const [activeTab, setActiveTab] = useState("overview");
   const [copied, setCopied] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState(false);
@@ -245,10 +246,13 @@ export default function Dashboard() {
     setKeyChecking(true);
     setKeyError("");
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch("/api/auth/verify-password", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: user.email, password: keyPassword }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ password: keyPassword }),
       });
       if (!res.ok) {
         setKeyError("Incorrect password.");
@@ -290,8 +294,14 @@ export default function Dashboard() {
   }
 
   function formatDate(timestamp) {
-    const ts =
-      typeof timestamp === "string" ? timestamp : Number(timestamp) * 1000;
+    let ts;
+    if (typeof timestamp === "number") {
+      ts = timestamp * 1000;
+    } else if (/^\d+$/.test(String(timestamp))) {
+      ts = Number(timestamp) * 1000;
+    } else {
+      ts = timestamp;
+    }
     return new Date(ts).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
@@ -309,6 +319,52 @@ export default function Dashboard() {
 
   const transactions = txData?.transactions || [];
   const incomingTxns = transactions.filter((tx) => tx.isIncoming);
+
+  const outgoingTxns = transactions.filter((tx) => !tx.isIncoming);
+  const recentActivity = [
+    ...(tipHistoryData?.tips || []).map((tip) => ({
+      key: `tip-${tip.id}`,
+      isIncoming: true,
+      counterparty: tip.tipperAddress,
+      amountUsdc: tip.amountUsdc || tip.amount,
+      dateValue: tip.createdAt,
+      sortTime: new Date(tip.createdAt).getTime() || 0,
+    })),
+    ...outgoingTxns.map((tx) => ({
+      key: `tx-${tx.hash}`,
+      isIncoming: false,
+      counterparty: tx.to,
+      amountUsdc: tx.valueUsdc,
+      dateValue: tx.timestamp,
+      sortTime: Number(tx.timestamp) * 1000 || 0,
+    })),
+  ]
+    .sort((a, b) => b.sortTime - a.sortTime)
+    .slice(0, 5);
+
+  const fullHistory = [
+    ...(tipHistoryData?.tips || []).map((tip) => ({
+      key: `tip-${tip.id}`,
+      isIncoming: true,
+      counterparty: tip.tipperAddress,
+      amountUsdc: tip.amountUsdc || tip.amount,
+      dateValue: tip.createdAt,
+      message: tip.message,
+      txHash: tip.txHash,
+      sortTime: new Date(tip.createdAt).getTime() || 0,
+    })),
+    ...outgoingTxns.map((tx) => ({
+      key: `tx-${tx.hash}`,
+      isIncoming: false,
+      counterparty: tx.to,
+      amountUsdc: tx.valueUsdc,
+      dateValue: tx.timestamp,
+      message: null,
+      txHash: tx.hash,
+      sortTime: Number(tx.timestamp) * 1000 || 0,
+    })),
+  ].sort((a, b) => b.sortTime - a.sortTime);
+
   const tipLink =
     (typeof window !== "undefined" ? window.location.origin : "") +
     "/tip/" +
@@ -316,7 +372,7 @@ export default function Dashboard() {
 
   const tabs = [
     { id: "overview", label: "Overview", icon: LayoutDashboard },
-    { id: "tips", label: "Tip History", icon: ArrowDownLeft },
+    { id: "history", label: "History", icon: History },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
     { id: "wallet", label: "Wallet", icon: Wallet },
   ];
@@ -460,25 +516,25 @@ export default function Dashboard() {
               <p className="text-sm text-[#6B7280] mb-4">
                 Latest transactions on your wallet
               </p>
-              {txLoading ? (
+              {txLoading || tipHistoryLoading ? (
                 <p className="text-sm text-[#6B7280] py-4">
                   Loading transactions...
                 </p>
-              ) : transactions.length === 0 ? (
+              ) : recentActivity.length === 0 ? (
                 <p className="text-sm text-[#6B7280] py-4">
                   No transactions yet. Share your tip link to get started!
                 </p>
               ) : (
                 <div className="space-y-0">
-                  {transactions.slice(0, 5).map((tx) => (
+                  {recentActivity.map((item) => (
                     <div
-                      key={tx.hash}
+                      key={item.key}
                       className="flex items-center gap-4 py-3 border-b border-[#F3F4F6] last:border-0"
                     >
                       <div
-                        className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-semibold ${tx.isIncoming ? "bg-green-50 text-green-600 border border-green-200" : "bg-red-50 text-red-500 border border-red-200"}`}
+                        className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-semibold ${item.isIncoming ? "bg-green-50 text-green-600 border border-green-200" : "bg-red-50 text-red-500 border border-red-200"}`}
                       >
-                        {tx.isIncoming ? (
+                        {item.isIncoming ? (
                           <ArrowDownLeft size={16} />
                         ) : (
                           <ArrowUpRight size={16} />
@@ -486,18 +542,18 @@ export default function Dashboard() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-[#111827]">
-                          {tx.isIncoming ? "From " : "To "}
-                          {formatAddress(tx.isIncoming ? tx.from : tx.to)}
+                          {item.isIncoming ? "From " : "To "}
+                          {formatAddress(item.counterparty)}
                         </p>
                         <p className="text-xs text-[#6B7280]">
-                          {formatDate(tx.timestamp)}
+                          {formatDate(item.dateValue)}
                         </p>
                       </div>
                       <span
-                        className={`text-sm font-semibold ${tx.isIncoming ? "text-green-600" : "text-red-500"}`}
+                        className={`text-sm font-semibold ${item.isIncoming ? "text-green-600" : "text-red-500"}`}
                       >
-                        {tx.isIncoming ? "+" : "-"}
-                        {tx.valueUsdc} USDC
+                        {item.isIncoming ? "+" : "-"}
+                        {item.amountUsdc} USDC
                       </span>
                     </div>
                   ))}
@@ -507,56 +563,68 @@ export default function Dashboard() {
           </div>
         )}
 
-       {activeTab === "tips" && (
+       {activeTab === "history" && (
           <div className="bg-white rounded-xl border border-[#E5E7EB] p-6">
             <h3 className="text-base font-semibold text-[#111827] mb-1">
-              Tip History
+              History
             </h3>
             <p className="text-sm text-[#6B7280] mb-4">
-              All tips recorded to your Tip Jar, including messages from fans
+              All tips received and USDC sent from your wallet
             </p>
-            {tipHistoryLoading ? (
+            {tipHistoryLoading || txLoading ? (
               <p className="text-sm text-[#6B7280] py-4">Loading...</p>
-            ) : !tipHistoryData?.tips || tipHistoryData.tips.length === 0 ? (
+            ) : fullHistory.length === 0 ? (
               <p className="text-sm text-[#6B7280] py-4">
-                No tips received yet.
+                No activity yet.
               </p>
             ) : (
               <div className="space-y-0">
-                {tipHistoryData.tips.map((tip) => (
+                {fullHistory.map((item) => (
                   <div
-                    key={tip.id}
+                    key={item.key}
                     className="flex items-start gap-4 py-3.5 border-b border-[#F3F4F6] last:border-0"
                   >
-                    <div className="w-9 h-9 rounded-lg bg-green-50 text-green-600 border border-green-200 flex items-center justify-center flex-shrink-0">
-                      <ArrowDownLeft size={16} />
+                    <div
+                      className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${item.isIncoming ? "bg-green-50 text-green-600 border border-green-200" : "bg-red-50 text-red-500 border border-red-200"}`}
+                    >
+                      {item.isIncoming ? (
+                        <ArrowDownLeft size={16} />
+                      ) : (
+                        <ArrowUpRight size={16} />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm text-[#111827]">
-                          From {formatAddress(tip.tipperAddress)}
+                          {item.isIncoming ? "From " : "To "}
+                          {formatAddress(item.counterparty)}
                         </p>
-                        <span className="text-sm font-semibold text-green-600 flex-shrink-0">
-                          +{tip.amountUsdc || tip.amount} USDC
+                        <span
+                          className={`text-sm font-semibold flex-shrink-0 ${item.isIncoming ? "text-green-600" : "text-red-500"}`}
+                        >
+                          {item.isIncoming ? "+" : "-"}
+                          {item.amountUsdc} USDC
                         </span>
                       </div>
-                      {tip.message && (
+                      {item.isIncoming && item.message && (
                         <p className="text-sm text-[#374151] bg-[#F9FAFB] rounded-lg px-3 py-2 mt-1.5 mb-1.5 italic">
-                          "{tip.message}"
+                          "{item.message}"
                         </p>
                       )}
                       <div className="flex items-center gap-2 mt-1">
                         <p className="text-xs text-[#6B7280]">
-                          {formatDate(tip.createdAt)}
+                          {formatDate(item.dateValue)}
                         </p>
-                        
-                         <a href={`${ARC_EXPLORER}/tx/${tip.txHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-[#7c3aed] hover:text-[#6d28d9] flex items-center gap-0.5"
-                        >
-                          Explorer <ExternalLink size={10} />
-                        </a>
+                        {item.txHash && (
+                          
+                            href={`${ARC_EXPLORER}/tx/${item.txHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-[#7c3aed] hover:text-[#6d28d9] flex items-center gap-0.5"
+                          >
+                            Explorer <ExternalLink size={10} />
+                          </a>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -38,10 +38,6 @@ export default function Login() {
     }
   }
 
-  function handleKeyDown(e) {
-    if (e.key === "Enter") handleLogin();
-  }
-
   return (
     <div className="min-h-screen bg-[#F9FAFB] font-inter flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-[420px]">
@@ -90,7 +86,6 @@ export default function Login() {
                   setEmail(e.target.value);
                   setError("");
                 }}
-                onKeyDown={handleKeyDown}
                 placeholder="you@example.com"
                 className="w-full px-3 py-2.5 text-sm text-[#111827] bg-white border border-[#E5E7EB] rounded-lg outline-none focus:ring-2 focus:ring-[#7c3aed] focus:ring-offset-2 focus:border-transparent transition-all"
               />
@@ -109,7 +104,6 @@ export default function Login() {
                     setPassword(e.target.value);
                     setError("");
                   }}
-                  onKeyDown={handleKeyDown}
                   placeholder="••••••••"
                   className="w-full px-3 py-2.5 pr-10 text-sm text-[#111827] bg-white border border-[#E5E7EB] rounded-lg outline-none focus:ring-2 focus:ring-[#7c3aed] focus:ring-offset-2 focus:border-transparent transition-all"
                 />

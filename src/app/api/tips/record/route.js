@@ -1,5 +1,6 @@
 import sql from "@/app/api/utils/sql";
 import { rateLimit, getClientIP } from "@/app/api/utils/auth-helpers";
+import { verifyArcTransaction } from "@/app/api/utils/arc";
 
 export async function action({ request }) {
   try {
@@ -66,6 +67,18 @@ export async function action({ request }) {
       return Response.json(
         { error: "This tip has already been recorded." },
         { status: 409 },
+      );
+    }
+
+    const verification = await verifyArcTransaction(
+      txHash,
+      creatorAddress,
+      amountUsdc || amount,
+    );
+    if (!verification.valid) {
+      return Response.json(
+        { error: verification.reason || "Could not verify this transaction." },
+        { status: 400 },
       );
     }
 

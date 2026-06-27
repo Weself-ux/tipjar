@@ -19,7 +19,7 @@ const EMAILJS_TEMPLATE_OTP = "template_tan8syy";
 const EMAILJS_TEMPLATE_WELCOME = "template_owsv6a8";
 const EMAILJS_PUBLIC_KEY = "a7C5T6Unk9oPR7CXL";
 
-// Helper — proxies email through our backend to avoid CORS issues with EmailJS
+// Helper — sends email directly from the browser via EmailJS
 async function sendEmailJS(serviceId, templateId, templateParams, publicKey) {
   const { default: emailjs } = await import("@emailjs/browser");
   await emailjs.send(serviceId, templateId, templateParams, publicKey);
@@ -53,7 +53,7 @@ function validatePassword(password) {
   return null;
 }
 
-// Client-side wallet generation using Web Crypto API
+// Client-side wallet generation using ethers.js
 async function generateWalletClientSide() {
   const { ethers } = await import("ethers");
   const wallet = ethers.Wallet.createRandom();

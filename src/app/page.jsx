@@ -152,7 +152,7 @@ export default function Landing() {
               <div className="w-12 h-12 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center text-xl font-bold text-white mx-auto mb-2">
                 E
               </div>
-              <p className="text-white font-semibold text-sm">@emmanuel</p>
+              <p className="text-white font-semibold text-sm">@creator</p>
               <p className="text-white/60 text-xs">Creator · Arc Testnet</p>
             </div>
             <div className="p-5">
@@ -188,7 +188,7 @@ export default function Landing() {
               </div>
               <div className="h-10 bg-gradient-to-r from-[#7c3aed] to-[#3b82f6] rounded-xl flex items-center justify-center">
                 <span className="text-xs font-bold text-white">
-                  Send $5 USDC to @emmanuel
+                  Send $5 USDC to @creator
                 </span>
               </div>
             </div>
@@ -434,7 +434,7 @@ export default function Landing() {
               Log In
             </a>
             <a
-              href="mailto:support@tipjar.app"
+              href="mailto:tipjar011@gmail.com"
               className="text-xs text-[#6B7280] hover:text-[#111827] transition-colors flex items-center gap-1"
             >
               <Mail size={11} /> Contact
