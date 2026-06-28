@@ -616,7 +616,7 @@ export default function Dashboard() {
                           {formatDate(item.dateValue)}
                         </p>
                         {item.txHash && (
-                          
+                          <a
                             href={`${ARC_EXPLORER}/tx/${item.txHash}`}
                             target="_blank"
                             rel="noopener noreferrer"
