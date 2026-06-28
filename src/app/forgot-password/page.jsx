@@ -106,7 +106,6 @@ export default function ForgotPassword() {
     setLoading(true);
     try {
       const { code } = JSON.parse(sentOtp);
-    const { code } = JSON.parse(sentOtp);
       const res = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
