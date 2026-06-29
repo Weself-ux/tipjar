@@ -14,7 +14,6 @@ export default [
   route('api/auth/reset-password', './api/auth/reset-password/route.js'),
   route('api/auth/request-password-reset', './api/auth/request-password-reset/route.js'),
   route('api/auth/verify-password', './api/auth/verify-password/route.js'),
-  route('api/email/send', './api/email/send/route.js'),
   route('api/tips/history', './api/tips/history/route.js'),
   route('api/tips/analytics', './api/tips/analytics/route.js'),
   route('api/tips/record', './api/tips/record/route.js'),
